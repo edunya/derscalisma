@@ -317,8 +317,17 @@
                     const bytes = CryptoJS.AES.decrypt(encrypted, pass);
                     const decryptedToken = bytes.toString(CryptoJS.enc.Utf8);
 
-                    if (!decryptedToken || !decryptedToken.startsWith("gh")) {
-                        throw new Error("Hatalı şifre");
+                    if (!decryptedToken || (!decryptedToken.startsWith("gh") && !decryptedToken.startsWith("github_pat_"))) {
+                        // DEBUG: Ne çıktı görüyoruz?
+                        const safePreview = decryptedToken ? decryptedToken.substring(0, 10) + "..." : "BOŞ/NULL";
+                        alert(`DEBUG HATASI:\nÇözülen Veri: ${safePreview}\n\nBeklenen: 'ghp_' veya 'github_pat_' ile başlaması.\nSebep: Yanlış şifre veya Token formatı.`);
+                        throw new Error("Decryption failed");
+                    }
+
+                    // Repo adı kontrolü (Placeholder kalmış mı?)
+                    if (CONFIG.REPO.includes("kullanici/")) {
+                        alert("UYARI: Repo adını 'kullanici/derscalismaData' olarak bırakmışsınız. Lütfen gerçek GitHub kullanıcı adınızı yazın.");
+                        return;
                     }
 
                     this.token = decryptedToken;
@@ -533,4 +542,3 @@
 </body>
 
 </html>
-

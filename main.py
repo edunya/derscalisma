@@ -16,8 +16,8 @@ except ImportError:
 # --- GÜVENLİ AYARLAR ---
 # 1. 'encrypt_token_helper.py' scriptini çalıştırın.
 # 2. Ürettiği şifreli metni aşağıya yapıştırın.
-ENCRYPTED_GITHUB_TOKEN = "" 
-REPO_NAME = "" # Örn: kullaniciadi/repo-adi
+ENCRYPTED_GITHUB_TOKEN = "gAAAAABpP9qV1wz1WJafeG727Nt7n9tJtcWLws5e1xcs80fYnGVgta200c-mVrOXDUNqkf0uRvRMZoSrvXS1ueXZgivBrnQvv6F2iekR9n7_mPt12X3mkEK_znMatw5SQZMKKVygsv1ICRXjEf7Oul5znh8f995YIyPoU6g_KeKmuQzbogOm-iF-qgvi7hUDdW9BVmDY3mle" 
+REPO_NAME = "edunya/derscalismaData" # Örn: kullaniciadi/repo-adi
 
 # --- Sayfa ---
 st.set_page_config(page_title="Study Space", page_icon="🌿", layout="wide", initial_sidebar_state="collapsed")
@@ -201,3 +201,4 @@ if st.session_state.logged_in:
     main_app()
 else:
     login_page()
+

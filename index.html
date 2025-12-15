@@ -15,11 +15,14 @@
     <script>
         stlite.mount(
             {
-                requirements: ["plotly", "pandas", "matplotlib", "altair", "pyodide-http"],
+                requirements: ["plotly", "pandas", "matplotlib", "altair", "pyodide-http", "cryptography"],
                 entrypoint: "main.py",
                 files: {
                     "main.py": {
                         url: "main.py",
+                    },
+                    "utils.py": {
+                        url: "utils.py",
                     },
                 },
             },

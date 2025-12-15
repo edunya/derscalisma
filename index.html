@@ -1,289 +1,534 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>Ders Çalışma Yönetimi</title>
-    <!-- Stlite'ın daha yeni ve stabil bir versiyonunu kullanıyoruz (0.55.0) -->
-    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.55.0/build/stlite.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Space</title>
+    <!-- Gerekli Kütüphaneler -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #556B2F;
+            --primary-light: #7da453;
+            --bg-gradient: linear-gradient(135deg, #fdfbf7 0%, #e8f5e9 100%);
+            --glass-bg: rgba(255, 255, 255, 0.6);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.18);
+            --text-color: #2c3e50;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Glassmorphism Cards */
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            border: var(--glass-border);
+            margin-bottom: 24px;
+        }
+
+        /* Inputs & Buttons */
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 12px;
+            border: 1px solid #e0e0e0;
+            background: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(85, 107, 47, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(85, 107, 47, 0.3);
+        }
+
+        button.secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        button.danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        /* Grid Layouts */
+        .grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        @media (min-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr 2fr;
+            }
+
+            .grid-3 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* Stats */
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* Timer */
+        .timer-display {
+            font-size: 4rem;
+            text-align: center;
+            color: var(--primary);
+            font-weight: 300;
+            margin: 20px 0;
+        }
+
+        /* Toast Notification */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            margin-left: -125px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 10px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            bottom: 30px;
+            font-size: 17px;
+        }
+
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @keyframes fadein {
+            from {
+                bottom: 0;
+                opacity: 0;
+            }
+
+            to {
+                bottom: 30px;
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeout {
+            from {
+                bottom: 30px;
+                opacity: 1;
+            }
+
+            to {
+                bottom: 0;
+                opacity: 0;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <div id="root"></div>
+
+    <!-- CONFIGURATION AREA -->
+    <!-- Bu kısmı düzenleyeceksiniz -->
     <script>
-        stlite.mount(
-            {
-                requirements: ["plotly", "pandas", "pyodide-http", "cryptography", "requests"],
-                entrypoint: "main.py",
-                files: {
-                    "main.py": `import streamlit as st
-import pandas as pd
-import plotly.express as px
-import time
-from datetime import datetime
-from utils import GithubSync, decrypt_token
-import sys
+        // --- AYARLAR ---
+        // Aşağıdaki tırnakların içine encrypt_token_tool.html ile ürettiğiniz kodu yapıştırın.
+        const CONFIG = {
+            ENCRYPTED_TOKEN: "",
+            REPO: "" // Örn: kullaniciadi/calisma-verileri
+        };
+    </script>
 
-# --- Stlite Patch ---
-try:
-    import pyodide_http
-    pyodide_http.patch_all()
-except ImportError:
-    pass
+    <div id="toast">Bildirim</div>
 
-# --- GÜVENLİ AYARLAR ---
-# 1. 'encrypt_token_helper.py' scriptini çalıştırın.
-# 2. Ürettiği şifreli metni aşağıya yapıştırın.
-ENCRYPTED_GITHUB_TOKEN = "gAAAAABpP9qV1wz1WJafeG727Nt7n9tJtcWLws5e1xcs80fYnGVgta200c-mVrOXDUNqkf0uRvRMZoSrvXS1ueXZgivBrnQvv6F2iekR9n7_mPt12X3mkEK_znMatw5SQZMKKVygsv1ICRXjEf7Oul5znh8f995YIyPoU6g_KeKmuQzbogOm-iF-qgvi7hUDdW9BVmDY3mle" 
-REPO_NAME = "edunya/derscalismaData" # Örn: kullaniciadi/repo-adi
+    <!-- Login Screen -->
+    <div id="login-screen" class="container" style="max-width: 400px; margin-top: 10vh;">
+        <div class="card text-center">
+            <h1>🌿 Study Space</h1>
+            <p>Giriş Yap</p>
+            <input type="text" id="username" placeholder="Adınız">
+            <input type="password" id="password" placeholder="Grup Şifresi">
+            <button onclick="app.login()">Giriş Yap</button>
 
-# --- Sayfa ---
-st.set_page_config(page_title="Study Space", page_icon="🌿", layout="wide", initial_sidebar_state="collapsed")
 
-# --- CSS ---
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap');
-    html, body, [class*="css"] { font-family: 'Outfit', sans-serif; }
-    .stApp { background: linear-gradient(135deg, #fdfbf7 0%, #e8f5e9 100%); color: #2c3e50; }
-    .css-card {
-        background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px);
-        border-radius: 20px; padding: 20px; margin-bottom: 20px;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-    }
-    .stButton>button {
-        background: linear-gradient(90deg, #556B2F 0%, #7da453 100%);
-        color: white; border: none; padding: 10px 24px; border-radius: 12px;
-    }
-    .stTextInput>div>div>input { background-color: rgba(255, 255, 255, 0.8); border-radius: 10px; }
-</style>
-""", unsafe_allow_html=True)
+        </div>
+    </div>
 
-# --- State ---
-if 'logged_in' not in st.session_state: st.session_state.logged_in = False
-if 'username' not in st.session_state: st.session_state.username = ""
-if 'decrypted_token' not in st.session_state: st.session_state.decrypted_token = None
-if 'study_data' not in st.session_state: st.session_state.study_data = []
-if 'data_sha' not in st.session_state: st.session_state.data_sha = None
+    <!-- Dashboard -->
+    <div id="dashboard" class="container hidden">
+        <!-- Header -->
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="welcome-msg" style="margin:0;">👋 Hoşgeldin</h2>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="app.sync()" style="margin:0; width: auto;">🔄 Eşitle</button>
+                <button class="secondary" onclick="location.reload()" style="margin:0; width: auto;">Çıkış</button>
+            </div>
+        </div>
 
-# --- Helpers ---
-def init_github():
-    token = st.session_state.decrypted_token
-    # Repo ismi kodda yoksa sessiondan (manuel girişten) al
-    repo = REPO_NAME if REPO_NAME else st.session_state.get('gh_repo', "")
-    if token and repo:
-        return GithubSync(token, repo)
-    return None
+        <div class="grid grid-2">
+            <!-- Sidebar -->
+            <div>
+                <!-- Pomodoro -->
+                <div class="card text-center">
+                    <h3>⏱️ Pomodoro</h3>
+                    <div class="timer-display" id="timer">25:00</div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="timer.start()">Başlat</button>
+                        <button class="secondary" onclick="timer.stop()">Dur</button>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <label>Süre (dk): <span id="time-val">25</span></label>
+                        <input type="range" min="5" max="90" value="25" step="5"
+                            oninput="timer.setDuration(this.value)">
+                    </div>
+                </div>
 
-def load_data():
-    gh = init_github()
-    if gh:
-        with st.spinner('Bağlanılıyor...'):
-            data, sha = gh.fetch_data()
-            if data is not None:
-                st.session_state.study_data = data
-                st.session_state.data_sha = sha
-                return True
-    return False
+                <!-- Add Task -->
+                <div class="card">
+                    <h3>📝 Ders Ekle</h3>
+                    <input type="text" id="task-name" placeholder="Ders (Matematik vb.)">
+                    <input type="number" id="task-duration" placeholder="Süre (dk)" value="25">
+                    <button onclick="app.addTask()">Kaydet</button>
+                </div>
+            </div>
 
-def save_data():
-    gh = init_github()
-    if gh:
-        success = gh.push_data(st.session_state.study_data, st.session_state.data_sha)
-        if success:
-            load_data() # Update SHA
-            st.toast("✅ Kaydedildi")
-        else:
-            st.toast("❌ Hata")
+            <!-- Main Content -->
+            <div>
+                <!-- Stats -->
+                <div class="card">
+                    <div class="grid grid-3 text-center">
+                        <div>
+                            <div class="stat-value" id="stat-total">0</div>
+                            <div class="stat-label">Toplam Dk</div>
+                        </div>
+                        <div>
+                            <div class="stat-value" id="stat-count">0</div>
+                            <div class="stat-label">Oturum</div>
+                        </div>
+                        <div>
+                            <div class="stat-value" id="stat-streak">0</div>
+                            <div class="stat-label">Günlük Seri</div>
+                        </div>
+                    </div>
+                </div>
 
-# --- Pages ---
-def login_page():
-    st.markdown("<div style='text-align: center; padding: 50px;'>", unsafe_allow_html=True)
-    st.title("🌿 Study Space")
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown('<div class="css-card">', unsafe_allow_html=True)
-        username = st.text_input("Kullanıcı Adı", placeholder="Adınız")
-        password = st.text_input("Grup Şifresi", type="password", placeholder="Tokenı şifrelerken kullandığın parola")
-        
-        # Manuel ayarlar (eğer kod boşsa)
-        if not ENCRYPTED_GITHUB_TOKEN:
-            with st.expander("Manuel Ayar (Kod Boşsa)"):
-                st.text_input("Repo (user/repo)", key="gh_repo", value=REPO_NAME)
+                <!-- Chart -->
+                <div class="card">
+                    <div id="heatmap" style="width: 100%; height: 300px;"></div>
+                </div>
 
-        if st.button("Giriş Yap", use_container_width=True):
-            if not username or not password:
-                st.warning("Ad ve Şifre gerekli.")
-                return
+                <!-- Leaderboard -->
+                <div class="card">
+                    <h3>🏆 Arkadaş Sıralaması</h3>
+                    <div id="leaderboard"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            # 1. Token Çözme Denemesi
-            token_to_use = None
-            
-            if ENCRYPTED_GITHUB_TOKEN:
-                decrypted = decrypt_token(ENCRYPTED_GITHUB_TOKEN, password)
-                if decrypted:
-                    token_to_use = decrypted
-                else:
-                    st.error("Hatalı Şifre! Token çözülemedi.")
-                    return
-            else:
-                 st.error("Kod içinde ENCRYPTED_GITHUB_TOKEN tanımlı değil. Lütfen kurulumu yapın.")
-                 return
+    <script>
+        // --- APP LOGIC ---
+        const app = {
+            user: "",
+            token: "",
+            data: [],
+            sha: null,
 
-            # 2. Başarılı ise login
-            st.session_state.username = username
-            st.session_state.decrypted_token = token_to_use
-            
-            if load_data():
-                st.session_state.logged_in = True
-                st.success("Giriş Başarılı!")
-                st.rerun()
-            else:
-                st.error("GitHub'a bağlanılamadı. Token doğru çözüldü ama repo erişimi yok veya repo ismi yanlış.")
-                
-        st.markdown('</div>', unsafe_allow_html=True)
+            login: async function () {
+                const user = document.getElementById('username').value;
+                const pass = document.getElementById('password').value;
 
-def main_app():
-    c1, c2 = st.columns([8, 1])
-    c1.title(f"👋 {st.session_state.username}")
-    if c2.button("Çıkış"):
-        st.session_state.logged_in = False
-        st.session_state.decrypted_token = None
-        st.rerun()
+                if (!user || !pass) return this.toast("Lütfen bilgileri girin.");
 
-    col_main, col_sidebar = st.columns([3, 1])
-    
-    with col_sidebar:
-        # Pomodoro
-        st.markdown('<div class="css-card">', unsafe_allow_html=True)
-        st.subheader("⏱️ Pomodoro")
-        if 'time_left' not in st.session_state: st.session_state.time_left = 25*60
-        if 'timer_active' not in st.session_state: st.session_state.timer_active = False
-        sure = st.slider("Dakika", 5, 90, 25, 5)
-        if st.button("Başlat"): 
-            st.session_state.timer_active = True
-            st.session_state.time_left = sure*60
-        if st.button("Dur"): st.session_state.timer_active = False
-        
-        if st.session_state.timer_active:
-             m, s = divmod(st.session_state.time_left, 60)
-             st.markdown(f"<h2 style='text-align:center;color:#556B2F'>{m:02d}:{s:02d}</h2>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Ekle
-        st.markdown('<div class="css-card">', unsafe_allow_html=True)
-        st.subheader("Ekle")
-        ders = st.text_input("Ders")
-        dk = st.number_input("Süre", value=sure)
-        if st.button("Kaydet"):
-            st.session_state.study_data.append({
-                "user": st.session_state.username,
-                "ders": ders,
-                "sure": dk,
-                "tarih": str(datetime.now().date()),
-                "timestamp": str(datetime.now())
-            })
-            save_data()
-        st.markdown('</div>', unsafe_allow_html=True)
+                // 1. Decrypt Token
+                try {
+                    // Eğer CONFIG boşsa, manuel moda geç (geliştirme için)
+                    let encrypted = CONFIG.ENCRYPTED_TOKEN;
+                    if (!encrypted) {
+                        alert("Lütfen önce 'Kurulum' butonuna basıp ayarları yapın ve index.html dosyasına kaydedin.");
+                        return;
+                    }
 
-    with col_main:
-        # Grafik
-        st.markdown('<div class="css-card">', unsafe_allow_html=True)
-        my_data = [d for d in st.session_state.study_data if d['user'] == st.session_state.username]
-        if my_data:
-            df = pd.DataFrame(my_data)
-            daily = df.groupby('tarih')['sure'].sum().reset_index()
-            fig = px.bar(daily, x='tarih', y='sure', color='sure', title="Çalışmalarım", color_continuous_scale=['#dcedc8', '#33691e'])
-            fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("Veri yok.")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Tablo
-        st.markdown('<div class="css-card">', unsafe_allow_html=True)
-        all_df = pd.DataFrame(st.session_state.study_data)
-        if not all_df.empty:
-            rank = all_df.groupby('user')['sure'].sum().reset_index().sort_values('sure', ascending=False)
-            st.subheader("Skor Tablosu")
-            st.dataframe(rank, hide_index=True, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)`,
-                    "utils.py": `import json
-import base64
-import requests
-import datetime
-import streamlit as st
-from cryptography.fernet import Fernet
-import hashlib
+                    const bytes = CryptoJS.AES.decrypt(encrypted, pass);
+                    const decryptedToken = bytes.toString(CryptoJS.enc.Utf8);
 
-# --- Şifreleme Helperları ---
-def get_key_from_password(password):
-    """Paroladan 32-byte Fernet anahtarı üretir."""
-    digest = hashlib.sha256(password.encode()).digest()
-    return base64.urlsafe_b64encode(digest)
+                    if (!decryptedToken || !decryptedToken.startsWith("gh")) {
+                        throw new Error("Hatalı şifre");
+                    }
 
-def decrypt_token(encrypted_token, password):
-    """Şifreli tokenı parolayı kullanarak çözer."""
-    try:
-        key = get_key_from_password(password)
-        f = Fernet(key)
-        return f.decrypt(encrypted_token.encode()).decode()
-    except Exception as e:
-        return None
+                    this.token = decryptedToken;
+                    this.user = user;
 
-# --- GitHub Sync Sınıfı ---
-class GithubSync:
-    def __init__(self, token, repo_name, file_path="data.json"):
-        self.token = token
-        self.repo_name = repo_name
-        self.file_path = file_path
-        self.base_url = f"https://api.github.com/repos/{repo_name}/contents/{file_path}"
-        self.headers = {
-            "Authorization": f"token {token}",
-            "Accept": "application/vnd.github.v3+json"
-        }
+                    document.getElementById('welcome-msg').innerText = `👋 Selam, ${user}`;
 
-    def fetch_data(self):
-        try:
-            response = requests.get(self.base_url, headers=self.headers)
-            if response.status_code == 200:
-                content = response.json()
-                decoded_content = base64.b64decode(content['content']).decode('utf-8')
-                return json.loads(decoded_content), content['sha']
-            elif response.status_code == 404:
-                return [], None
-            else:
-                st.error(f"Veri çekme hatası: {response.status_code}")
-                return [], None
-        except Exception as e:
-            st.error(f"Bağlantı hatası: {e}")
-            return [], None
+                    // 2. Fetch Data
+                    await this.sync(true);
 
-    def push_data(self, data, sha=None):
-        try:
-            json_data = json.dumps(data, indent=4, ensure_ascii=False)
-            message = f"Update: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}"
-            
-            payload = {
-                "message": message,
-                "content": base64.b64encode(json_data.encode('utf-8')).decode('utf-8')
-            }
-            if sha:
-                payload["sha"] = sha
+                    // 3. Show Dashboard
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+                    this.toast("Giriş Başarılı!");
 
-            response = requests.put(self.base_url, headers=self.headers, json=payload)
-            return response.status_code in [200, 201]
-        except Exception as e:
-            st.error(f"Yükleme hatası: {e}")
-            return False`
-                },
+                } catch (e) {
+                    console.error(e);
+                    this.toast("Hatalı Şifre veya Token!");
+                }
             },
-            document.getElementById("root")
-        );
+
+            sync: async function (silent = false) {
+                if (!silent) this.toast("Eşitleniyor...");
+                const repo = CONFIG.REPO || localStorage.getItem('temp_repo');
+                if (!repo) return this.toast("Repo ayarı eksik!");
+
+                const url = `https://api.github.com/repos/${repo}/contents/data.json`;
+
+                try {
+                    const res = await fetch(url, {
+                        headers: {
+                            'Authorization': `token ${this.token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
+                    if (res.status === 404) {
+                        // Dosya yoksa boş başlat
+                        this.data = [];
+                        return;
+                    }
+
+                    if (!res.ok) throw new Error("GitHub Hatası: " + res.status);
+
+                    const json = await res.json();
+                    this.sha = json.sha;
+                    const content = atob(json.content); // Base64 decode
+                    // UTF-8 fix for Turkish characters
+                    const decoded = decodeURIComponent(Array.prototype.map.call(content, function (c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    }).join(''));
+
+                    this.data = JSON.parse(decoded);
+                    if (!silent) this.toast("Veriler Güncel!");
+                    this.renderStats();
+
+                } catch (e) {
+                    console.error(e);
+                    if (!silent) this.toast("Bağlantı Hatası!");
+                }
+            },
+
+            addTask: async function () {
+                const name = document.getElementById('task-name').value;
+                const dur = parseInt(document.getElementById('task-duration').value);
+
+                if (!name || !dur) return this.toast("Eksik bilgi!");
+
+                const entry = {
+                    user: this.user,
+                    ders: name,
+                    sure: dur,
+                    tarih: new Date().toISOString().split('T')[0],
+                    ts: new Date().toISOString()
+                };
+
+                this.data.push(entry);
+                this.toast("Yerel olarak eklendi...");
+                this.renderStats();
+
+                // Save to GitHub
+                const repo = CONFIG.REPO;
+                const url = `https://api.github.com/repos/${repo}/contents/data.json`;
+
+                // Turkish chars to Base64
+                const jsonStr = JSON.stringify(this.data, null, 2);
+                const encoded = btoa(unescape(encodeURIComponent(jsonStr)));
+
+                const payload = {
+                    message: "Update data",
+                    content: encoded,
+                    sha: this.sha
+                };
+
+                try {
+                    const res = await fetch(url, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${this.token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const respJson = await res.json();
+                        this.sha = respJson.content.sha;
+                        this.toast("☁️ GitHub'a Kaydedildi!");
+                    } else {
+                        throw new Error("Kayıt hatası");
+                    }
+                } catch (e) {
+                    this.toast("Kayıt Başarısız! (İnterneti kontrol et)");
+                }
+            },
+
+            renderStats: function () {
+                // Filter my data
+                const myData = this.data.filter(d => d.user === this.user);
+
+                // Stats
+                const total = myData.reduce((a, b) => a + b.sure, 0);
+                document.getElementById('stat-total').innerText = total;
+                document.getElementById('stat-count').innerText = myData.length;
+
+                // Chart (Plotly)
+                const dates = {};
+                myData.forEach(d => {
+                    dates[d.tarih] = (dates[d.tarih] || 0) + d.sure;
+                });
+
+                const x = Object.keys(dates).sort();
+                const y = x.map(k => dates[k]);
+
+                const trace = {
+                    x: x, y: y, type: 'bar',
+                    marker: { color: '#556B2F' }
+                };
+
+                const layout = {
+                    title: 'Günlük Çalışma (Dk)',
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    margin: { t: 30, r: 10, l: 30, b: 30 },
+                    font: { family: 'Outfit' }
+                };
+
+                Plotly.newPlot('heatmap', [trace], layout, { displayModeBar: false });
+
+                // Leaderboard
+                const users = {};
+                this.data.forEach(d => {
+                    users[d.user] = (users[d.user] || 0) + d.sure;
+                });
+
+                let html = '<table style="width:100%; text-align:left;"><tr><th>İsim</th><th>Toplam (Dk)</th></tr>';
+                Object.entries(users)
+                    .sort((a, b) => b[1] - a[1])
+                    .forEach(([u, s]) => {
+                        html += `<tr><td>${u} ${u === this.user ? ' (Sen)' : ''}</td><td>${s}</td></tr>`;
+                    });
+                html += '</table>';
+                document.getElementById('leaderboard').innerHTML = html;
+            },
+
+            toast: function (msg) {
+                const t = document.getElementById("toast");
+                t.className = "show";
+                t.innerText = msg;
+                setTimeout(function () { t.className = t.className.replace("show", ""); }, 3000);
+            }
+        };
+
+        // --- TIMER LOGIC ---
+        const timer = {
+            interval: null,
+            timeLeft: 25 * 60,
+
+            setDuration: function (min) {
+                document.getElementById('time-val').innerText = min;
+                if (!this.interval) {
+                    this.timeLeft = min * 60;
+                    this.updateDisplay();
+                }
+            },
+
+            start: function () {
+                if (this.interval) return;
+                this.interval = setInterval(() => {
+                    this.timeLeft--;
+                    this.updateDisplay();
+                    if (this.timeLeft <= 0) {
+                        this.stop();
+                        alert("Süre Doldu!");
+                    }
+                }, 1000);
+            },
+
+            stop: function () {
+                clearInterval(this.interval);
+                this.interval = null;
+            },
+
+            updateDisplay: function () {
+                const m = Math.floor(this.timeLeft / 60);
+                const s = this.timeLeft % 60;
+                document.getElementById('timer').innerText =
+                    `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+        };
     </script>
 </body>
 
